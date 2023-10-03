@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     secret: str = 'SECRET'
     first_superuser_email: Optional[EmailStr] = None
     first_superuser_password: Optional[str] = None
+    error_del_user: str = 'Удаление пользователей запрещено! Деактивируйте их'
+    lifetime: int = 3600
+    min_len: int = 3
 
     class Config:
         env_file = '.env'

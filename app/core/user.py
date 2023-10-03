@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Union
 
 from fastapi import Depends, Request
@@ -16,6 +17,9 @@ from app.models.user import User
 from app.schemas.user import UserCreate
 
 
+logger = logging.getLogger(__name__)
+
+
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
     yield SQLAlchemyUserDatabase(session, User)
 
@@ -24,7 +28,7 @@ bearer_transport = BearerTransport(tokenUrl='auth/jwt/login')
 
 
 def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=settings.secret, lifetime_seconds=3600)
+    return JWTStrategy(secret=settings.secret, lifetime_seconds=settings.lifetime)
 
 
 auth_backend = AuthenticationBackend(
@@ -41,9 +45,9 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
         password: str,
         user: Union[UserCreate, User],
     ) -> None:
-        if len(password) < 3:
+        if len(password) < settings.min_len:
             raise InvalidPasswordException(
-                reason='Password should be at least 3 characters'
+                reason=f'Password should be at least {settings.min_len} characters'
             )
         if user.email in password:
             raise InvalidPasswordException(
@@ -53,7 +57,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
     async def on_after_register(
             self, user: User, request: Optional[Request] = None
     ):
-        print(f'Пользователь {user.email} зарегистрирован.')
+        logger.info(f'Пользователь {user.email} зарегистрирован.')
 
 
 async def get_user_manager(user_db=Depends(get_user_db)):
