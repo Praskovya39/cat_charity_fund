@@ -1,38 +1,67 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Extra, Field, PositiveInt
+from pydantic import BaseModel, Extra, Field, validator
+
+from app.core.config import settings
 
 
 class CharityProjectBase(BaseModel):
-    name: Optional[str] = Field(None, max_length=100)
-    description: Optional[str] = Field(None)
-    full_amount: Optional[PositiveInt] = Field(None)
+    name: str
+    description: str
+    full_amount: int
+
+
+class CharityProjectCreate(CharityProjectBase):
+    name: str = Field(
+        ...,
+        min_length=settings.min_length_string,
+        max_length=settings.max_length_string,
+    )
+    description: str = Field(..., min_length=settings.min_length_string)
+
+    @validator("full_amount")
+    def check_full_amount(cls, value):
+        if value <= settings.full_amount_minimum:
+            raise ValueError("full_amount не может быть ниже 0")
+        return value
+
+
+class CharityProjectUpdate(BaseModel):
+    name: Optional[str] = Field(
+        None,
+        min_length=settings.min_length_string,
+        max_length=settings.max_length_string,
+    )
+    description: Optional[str] = Field(None, min_length=settings.min_length_string)
+    full_amount: Optional[int]
+
+    @validator("full_amount")
+    def check_full_amount(cls, value):
+        if value <= settings.full_amount_minimum:
+            raise ValueError("full_amount не может быть ниже 0")
+        return value
 
     class Config:
         extra = Extra.forbid
-        min_anystr_length = 1
 
 
-class CharityProjectCreate(BaseModel):
-    name: str = Field(..., max_length=100)
-    description: str = Field(...)
-    full_amount: PositiveInt = Field(...)
-
-    class Config:
-        min_anystr_length = 1
-
-
-class CharityProjectDB(CharityProjectCreate):
+class CharityProjectDB(CharityProjectBase):
     id: int
-    invested_amount: int = Field(0)
-    fully_invested: bool = Field(False)
+    invested_amount: int
+    fully_invested: bool
     create_date: datetime
-    close_date: Optional[datetime]
+    close_date: datetime = None
 
     class Config:
         orm_mode = True
 
 
-class CharityProjectUpdate(CharityProjectBase):
-    pass
+class CharityProjectDelete(CharityProjectBase):
+    id: int
+    invested_amount: int
+    fully_invested: bool
+    create_date: datetime
+
+    class Config:
+        orm_mode = True
