@@ -1,27 +1,15 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, validator
-
-from app.core.config import settings
+from pydantic import BaseModel, Field, PositiveInt
 
 
 class DonationBase(BaseModel):
-    full_amount: int
+    full_amount: PositiveInt
     comment: Optional[str]
 
 
 class DonationCreate(DonationBase):
-    @validator("full_amount")
-    def check_full_amount(cls, value):
-        if not isinstance(value, int):
-            raise ValueError("full_amount не число")
-        if value <= settings.full_amount_minimum:
-            raise ValueError("full_amount не может быть ниже 0")
-        return value
-
-
-class DonationDB(DonationBase):
     id: int
     create_date: datetime
 
@@ -29,13 +17,10 @@ class DonationDB(DonationBase):
         orm_mode = True
 
 
-class DonationAdmin(DonationBase):
+class DonationDB(DonationCreate):
     id: int
+    create_date: datetime
     user_id: int
-    invested_amount: int
+    invested_amount: int = Field(0)
     fully_invested: bool
-    create_date: datetime
-    close_date: datetime = None
-
-    class Config:
-        orm_mode = True
+    close_date: Optional[datetime]
